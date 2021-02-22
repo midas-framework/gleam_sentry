@@ -100,7 +100,8 @@ pub fn capture_exception(client, exception, stacktrace, timestamp) {
       tuple("timestamp", json.int(timestamp)),
       tuple("environment", json.string(environment)),
       tuple("exception", exception_to_json(exception, stacktrace)),
-      tuple("platform", json.string("gleam")),
+      // I don't know why all exceptions are reported as JS
+      tuple("platform", json.string("other")),
     ])
 
   capture_event(client, event, timestamp)
