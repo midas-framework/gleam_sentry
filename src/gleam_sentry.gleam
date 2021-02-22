@@ -134,7 +134,7 @@ fn exception_to_json(exception, stacktrace) {
   ])
 }
 
-fn stacktrace_to_json(stacktrace) {
+pub fn stacktrace_to_json(stacktrace) {
   let frames =
     json.list(list.map(list.reverse(stacktrace), stack_frame_to_json))
   json.object([tuple("frames", frames)])
