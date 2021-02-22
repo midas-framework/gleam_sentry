@@ -81,6 +81,7 @@ pub fn capture_exception(client, exception, stacktrace, timestamp) {
       tuple("timestamp", json.int(timestamp)),
       tuple("environment", json.string(environment)),
       tuple("exception", exception_to_json(exception, stacktrace)),
+      tuple("platform", json.string("gleam")),
     ])
 
   let path = string.concat(["/api/", project_id, "/store/"])
