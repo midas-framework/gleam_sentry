@@ -68,22 +68,8 @@ pub fn init(dsn, environment) {
   Ok(client)
 }
 
-// pub fn capture_event() {
-// }
-// Theres probably a datastructure here that does a job for level + exception + etc
-// client can have an a -> event function
-/// capture an erlang runtime exception
-pub fn capture_exception(client, exception, stacktrace, timestamp) {
-  let Client(host, key, project_id, environment) = client
-  let event =
-    json.object([
-      // tuple("id"),
-      tuple("timestamp", json.int(timestamp)),
-      tuple("environment", json.string(environment)),
-      tuple("exception", exception_to_json(exception, stacktrace)),
-      tuple("platform", json.string("gleam")),
-    ])
-
+pub fn capture_event(client, event, timestamp) {
+  let Client(host, key, project_id, ..) = client
   let path = string.concat(["/api/", project_id, "/store/"])
   let body =
     base.encode64(bit_string.from_string(compress(json.encode(event))), False)
@@ -100,6 +86,24 @@ pub fn capture_exception(client, exception, stacktrace, timestamp) {
     |> http.prepend_req_header("accept", "applicaton/json")
     |> http.set_req_body(body)
   httpc.send(request)
+}
+
+// Theres probably a datastructure here that does a job for level + exception + etc
+// client can have an a -> event function
+/// capture an erlang runtime exception
+pub fn capture_exception(client, exception, stacktrace, timestamp) {
+  let Client(environment: environment, ..) = client
+
+  let event =
+    json.object([
+      // tuple("id"),
+      tuple("timestamp", json.int(timestamp)),
+      tuple("environment", json.string(environment)),
+      tuple("exception", exception_to_json(exception, stacktrace)),
+      tuple("platform", json.string("gleam")),
+    ])
+
+  capture_event(client, event, timestamp)
 }
 
 fn exception_detail(reason) {
