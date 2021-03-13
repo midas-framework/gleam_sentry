@@ -6,6 +6,7 @@ import gleam/atom
 import gleam/base
 import gleam/bit_string
 import gleam/int
+import gleam/io
 import gleam/list
 import gleam/option.{Some}
 import gleam/string
@@ -14,6 +15,7 @@ import gleam/beam
 import gleam/http
 import gleam/httpc
 import gleam/json
+import gleam_uuid
 
 external fn compress(String) -> String =
   "zlib" "compress"
@@ -149,5 +151,88 @@ fn stack_frame_to_json(frame) {
     tuple("function", json.string(function)),
     tuple("module", json.string(atom.to_string(module))),
     tuple("lineno", json.int(line_number)),
+  ])
+}
+
+pub fn capture_trace(client, trace, span, timestamp) {
+  let Client(environment: environment, ..) = client
+  let trace_id = trace
+  // Must be a hex exactly half the length of a trace_id
+  let span_id = "b0e6a15b45c36b12"
+
+  let event =
+    json.object([
+      // tuple("id"),
+      tuple("timestamp", json.int(timestamp)),
+      tuple("environment", json.string(environment)),
+      tuple(
+        "contexts",
+        json.object([
+          tuple(
+            "trace",
+            json.object([
+              tuple("trace_id", json.string(trace_id)),
+              tuple("span_id", json.string(span_id)),
+            ]),
+          ),
+        ]),
+      ),
+      tuple(
+        "spans",
+        json.list([
+          json.object([
+            tuple("span_id", json.string(span_id)),
+            tuple("trace_id", json.string(trace_id)),
+            tuple("op", json.string("http.client")),
+            tuple("description", json.string("GET /foo")),
+            tuple(
+              "data",
+              json.object([
+                tuple("http.method", json.string("GET")),
+                tuple("http.target", json.string("/foo?bar=3")),
+              ]),
+            ),
+            tuple("start_timestamp", json.int(timestamp - 200)),
+            tuple("timestamp", json.int(timestamp)),
+          ]),
+          json.object([
+            tuple("span_id", json.string(span_id)),
+            tuple("trace_id", json.string(trace_id)),
+            tuple("op", json.string("span.op")),
+            tuple("description", json.string("span.description")),
+            tuple("tags", json.object([tuple("foo", json.string("all foo"))])),
+            tuple("start_timestamp", json.int(timestamp - 100)),
+            tuple("timestamp", json.int(timestamp - 5)),
+          ]),
+        ]),
+      ),
+      // I don't know why all exceptions are reported as JS
+      tuple("platform", json.string("other")),
+    ])
+
+  capture_event(client, event, timestamp)
+}
+
+pub type Span {
+  Span(
+    span_id: String,
+    parent_span_id: String,
+    trace_id: String,
+    op: String,
+    description: String,
+    start: Int,
+    end: Int,
+  )
+}
+
+pub fn span_to_json(span: Span) {
+  json.object([
+    tuple("span_id", json.string(span.span_id)),
+    tuple("parent_span_id", json.string(span.parent_span_id)),
+    tuple("trace_id", json.string(span.trace_id)),
+    tuple("op", json.string(span.op)),
+    tuple("description", json.string(span.description)),
+    tuple("start_timestamp", json.int(span.start)),
+    tuple("timestamp", json.int(span.end)),
   ])
 }
